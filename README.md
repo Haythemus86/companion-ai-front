@@ -39,9 +39,10 @@ du compte système qui le lance, dans `~/.local/share/companion-ai`.
 	aperçu graphique des yeux (pas une télémétrie du robot).
 - **Mémoire** : recherche textuelle, pagination, création, correction,
 	confidentialité, suppression confirmée, citations temporaires et expiration.
-- **Personnes** : fiches et sources dérivées des souvenirs, signalement des ambiguïtés.
-	Le détail est borné aux 20 premières sources de chaque fiche ; les autres restent
-	consultables dans la mémoire.
+- **Personnes** : identités et alias dérivés des souvenirs, sources paginées par 20,
+	faits extraits et signalement des ambiguïtés. Attribution confirmée d’une source
+	à une identité nouvelle ou existante, dissociation et accès direct à la correction.
+	Les faits confidentiels restent masqués avec leur source.
 - **Conversation** : pipeline `Conversation`, modération, profils d'âge, Groq/Ollama/auto,
 	sélection explicite d'un souvenir, accord ponctuel pour un souvenir confidentiel.
 - **Personnalisation** : nom, surnom, présentation, intérêts, profil privé et permissions

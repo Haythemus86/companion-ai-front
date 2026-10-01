@@ -1843,3 +1843,26 @@ main > section {
     scroll-behavior: auto !important;
   }
 }
+
+.person-identity {
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+}
+.source-actions {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.association-editor {
+  margin-top: 1rem;
+}
+.association-editor select {
+  width: 100%;
+  min-width: 0;
+}
+.source-facts {
+  padding-left: 1.25rem;
+}
+.person-detail .pagination {
+  flex-wrap: wrap;
+}

@@ -122,7 +122,9 @@ test("dashboard, canvas et navigation sans debordement", async ({
 test("acces clavier au contenu sans changer la route", async ({ page }) => {
   await openPage(page, "/settings");
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("link", { name: "Aller au contenu" })).toBeFocused();
+  await expect(
+    page.getByRole("link", { name: "Aller au contenu" }),
+  ).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("main")).toBeFocused();
   await expect(page).toHaveURL(/#\/settings$/);
@@ -262,4 +264,111 @@ test("erreur API visible sans fausse confirmation", async ({ page }) => {
   await page.getByRole("button", { name: "Enregistrer les réglages" }).click();
   await expect(page.getByRole("alert")).toContainText("Companion est occupé.");
   await expect(page.getByRole("status")).toHaveCount(0);
+});
+
+test("personnes : identite confirmee, alias, confidentialite et dissociation", async ({
+  page,
+  request,
+}) => {
+  const add = async (content: string) =>
+    (
+      await (
+        await request.post("/api/memories", {
+          headers,
+          data: { content, confidential: true },
+        })
+      ).json()
+    ).memory;
+  const first = await add("Alex aime le piano");
+  await add("Alexandre aime le dessin");
+  await openPage(page, "/people");
+  await page
+    .locator(".person-item")
+    .filter({ has: page.getByText("Alex", { exact: true }) })
+    .click();
+  await expect(page.getByText("Source confidentielle masquée")).toBeVisible();
+  await expect(
+    page.getByText("Préférence déclarée :", { exact: false }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Afficher la source" }).click();
+  await expect(page.locator(".source-facts")).toContainText("le piano");
+  await page.getByRole("button", { name: "Attribuer une identité" }).click();
+  await page.getByRole("button", { name: "Vérifier l’association" }).click();
+  await page
+    .getByRole("button", { name: "Annuler", exact: true })
+    .last()
+    .click();
+  expect(
+    (await (await request.get(`/api/memories/${first.id}`, { headers })).json())
+      .person_id,
+  ).toBeNull();
+  await page.getByRole("button", { name: "Vérifier l’association" }).click();
+  await page.getByRole("button", { name: "Confirmer l’association" }).click();
+  await expect(page.locator(".person-identity")).toContainText("Identité :");
+  const identity = (
+    await (await request.get(`/api/memories/${first.id}`, { headers })).json()
+  ).person_id;
+  await page.locator(".person-item").filter({ hasText: "Alexandre" }).click();
+  await page.getByRole("button", { name: "Attribuer une identité" }).click();
+  await page.getByLabel("Identité à attribuer").selectOption(identity);
+  await page.getByRole("button", { name: "Vérifier l’association" }).click();
+  await page.getByRole("button", { name: "Confirmer l’association" }).click();
+  await expect(
+    page.getByText("Alias présents dans les sources : alex, alexandre"),
+  ).toBeVisible();
+  await expect(page.locator(".source-item")).toHaveCount(2);
+  await expect(page.locator(".source-facts")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page
+    .getByRole("button", { name: "Attribuer une identité" })
+    .first()
+    .click();
+  await page.getByLabel("Identité à attribuer").selectOption("none");
+  await page.getByRole("button", { name: "Vérifier l’association" }).click();
+  await page.getByRole("button", { name: "Confirmer l’association" }).click();
+  await expect(page.locator(".person-identity")).toContainText(
+    "Identité non attribuée",
+  );
+});
+
+test("personnes : pagination et correction directe d’une source", async ({
+  page,
+  request,
+}) => {
+  for (let i = 0; i < 21; i++)
+    await request.post("/api/memories", {
+      headers,
+      data: { content: `Alex aime le dessin numero ${i}`, confidential: false },
+    });
+  await openPage(page, "/people");
+  await page.locator(".person-item").click();
+  await expect(page.locator(".source-item")).toHaveCount(20);
+  await page.getByRole("button", { name: "Sources suivantes" }).click();
+  await expect(page.locator(".source-item")).toHaveCount(1);
+  await expect(page.locator(".source-item")).toContainText("numero 20");
+  await page.getByRole("button", { name: "Sources précédentes" }).click();
+  await expect(page.locator(".source-item")).toHaveCount(20);
+  await page
+    .getByRole("link", { name: "Modifier le souvenir" })
+    .first()
+    .click();
+  await expect(page.getByLabel("Contenu", { exact: true })).toHaveValue(
+    "Alex aime le dessin numero 0",
+  );
+  await page
+    .getByLabel("Contenu", { exact: true })
+    .fill("Alex aime la photographie");
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Souvenir enregistré localement.",
+  );
+  await openPage(page, "/people");
+  await page.locator(".person-item").click();
+  await expect(page.locator(".source-item").first()).toContainText(
+    "Alex aime la photographie",
+  );
 });

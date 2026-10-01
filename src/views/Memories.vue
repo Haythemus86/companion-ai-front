@@ -124,7 +124,21 @@ watch([tier, filter], () => {
   revealed.value.clear();
   load();
 });
-onMounted(load);
+async function openLinkedMemory() {
+  if (typeof route.query.edit !== "string") return;
+  await action(async () => {
+    edit(
+      await api<Memory>(
+        `/memories/${encodeURIComponent(route.query.edit as string)}`,
+      ),
+    );
+  });
+}
+watch(() => route.query.edit, openLinkedMemory);
+onMounted(async () => {
+  await load();
+  await openLinkedMemory();
+});
 </script>
 
 <template>

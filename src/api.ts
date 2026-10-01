@@ -21,6 +21,7 @@ export interface Status {
   hardware: string;
 }
 export interface Memory {
+  person_id: string | null;
   id: string;
   content: string;
   confidential: boolean;
@@ -48,6 +49,9 @@ export interface Profile {
 }
 export interface Person {
   personne: string;
+  person_id: string | null;
+  alias: string[];
+  total_sources?: number;
   cle: string;
   identite_a_confirmer: boolean;
   suite: number | null;
@@ -57,6 +61,13 @@ export interface Person {
     contenu: string;
     confidentiel: boolean;
     enregistre_le: string;
+    modifie_le: string;
+    faits: {
+      attribut: string;
+      valeur: string;
+      polarite: string;
+      cessation: boolean;
+    }[];
   }[];
   points_a_verifier: { sujet: string; statut: string }[];
 }
