@@ -204,8 +204,10 @@ test("reglages persistants, horaires valides et export prive", async ({
   await expect(page.getByRole("status")).toContainText("Réglages enregistrés");
   await openPage(page, "/schedule");
   await page.getByLabel("Début du silence").selectOption("22");
-  await page.getByRole("button", { name: "Enregistrer les horaires" }).click();
-  await expect(page.getByRole("status")).toContainText("Horaires enregistrés");
+  await page.getByRole("button", { name: "Enregistrer les réglages" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Réglages d’initiative enregistrés",
+  );
   await page.reload();
   await expect(page.getByLabel("Début du silence")).toHaveValue("22");
   await openPage(page, "/system");
@@ -370,5 +372,38 @@ test("personnes : pagination et correction directe d’une source", async ({
   await page.locator(".person-item").click();
   await expect(page.locator(".source-item").first()).toContainText(
     "Alex aime la photographie",
+  );
+});
+
+test("niveau d’initiative persistant et explication des limites", async ({
+  page,
+}) => {
+  await openPage(page, "/schedule");
+  await page.getByLabel("Niveau d’initiative").selectOption("chatty");
+  await expect(page.locator("#initiative-policy")).toContainText("2 minutes");
+  await expect(page.locator("#initiative-policy")).toContainText(
+    "6 propositions par heure",
+  );
+  await page.getByRole("button", { name: "Enregistrer les réglages" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Réglages d’initiative enregistrés",
+  );
+  await page.reload();
+  await expect(page.getByLabel("Niveau d’initiative")).toHaveValue("chatty");
+  await page.getByLabel("Niveau d’initiative").selectOption("off");
+  await page.getByRole("button", { name: "Enregistrer les réglages" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Réglages d’initiative enregistrés",
+  );
+  await page.reload();
+  await expect(page.getByLabel("Niveau d’initiative")).toHaveValue("off");
+  await expect(
+    page.getByText("Initiatives désactivées", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("#initiative-policy")).toContainText("salutations");
+  await page.getByLabel("Niveau d’initiative").selectOption("balanced");
+  await page.getByRole("button", { name: "Enregistrer les réglages" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Réglages d’initiative enregistrés",
   );
 });

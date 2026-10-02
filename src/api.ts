@@ -71,7 +71,15 @@ export interface Person {
   }[];
   points_a_verifier: { sujet: string; statut: string }[];
 }
+export type InitiativeLevel = "off" | "discreet" | "balanced" | "chatty";
+export interface InitiativePolicy {
+  label: string;
+  interval: number;
+  max_checks: number;
+  max_utterances: number;
+}
 export interface Schedule {
+  initiative_level: InitiativeLevel | null;
   work_days: number[];
   work_start: number;
   work_end: number;

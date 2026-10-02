@@ -119,3 +119,14 @@ contient les sept vues chargées à la demande. `src/components/` contient la
 confirmation accessible et le canvas. L'état privé n'est pas persisté côté client.
 `tests/admin.spec.ts` exerce l'interface contre `tests/server.py`, isolé des
 données du compte système.
+
+
+### Niveau d’initiative
+
+Page **Initiatives → Envie de discuter** : Discret (15 min, 1 proposition/h),
+Équilibré (5 min, 3/h), Bavard (2 min, 6/h), ou Désactivé. Enregistrer les réglages
+les applique au chat actif à sa prochaine attente. Mettre à jour aussi le backend :
+`GET /api/schedule` fournit les presets et `PUT` persiste `initiative_level`.
+Les horaires, la présence, les pauses et l’attente d’une réponse restent prioritaires.
+Le badge indique un créneau, pas l’état matériel en direct. Les salutations restent
+indépendantes, et ce réglage n’active ni le chat ni le microphone.
