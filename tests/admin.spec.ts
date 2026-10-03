@@ -407,3 +407,24 @@ test("niveau d’initiative persistant et explication des limites", async ({
     "Réglages d’initiative enregistrés",
   );
 });
+
+
+test("fournisseurs : ajout et remplacement de clé sans exposition", async ({ page, request }) => {
+  await openPage(page, "/providers");
+  await page.getByLabel("Identifiant", { exact: true }).fill("test-cloud");
+  await page.getByLabel("Nom affiché").fill("Mon Groq");
+  await page.getByLabel("Nouvelle clé API").fill("secret-test-one");
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Mon Groq" })).toBeVisible();
+  await expect(page.getByLabel("Nouvelle clé API")).toHaveValue("");
+  await page.getByRole("button", { name: "Modifier / remplacer la clé" }).click();
+  await page.getByLabel("Nouvelle clé API").fill("secret-test-two");
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByLabel("Nouvelle clé API")).toHaveValue("");
+  const result = await request.get("/api/providers", { headers });
+  const content = await result.text();
+  expect(content).not.toContain("secret-test");
+  expect(JSON.parse(content).profiles["test-cloud"].has_key).toBe(true);
+  await page.getByRole("button", { name: "Supprimer", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Mon Groq" })).toHaveCount(0);
+});

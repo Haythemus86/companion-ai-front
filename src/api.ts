@@ -120,7 +120,7 @@ export async function api<T>(
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(path === "/chat" ? 240000 : 15000),
+      signal: AbortSignal.timeout(path === "/chat" || path.endsWith("/test") ? 240000 : 15000),
     });
   } catch {
     throw new Error(

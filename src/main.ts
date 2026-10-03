@@ -12,6 +12,7 @@ import App from "./App.vue";
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
+    { path: "/providers", component: () => import("./views/Providers.vue"), meta: { title: "Fournisseurs IA" } },
     {
       path: "/",
       component: () => import("./views/Dashboard.vue"),

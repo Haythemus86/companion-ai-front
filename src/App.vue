@@ -21,6 +21,7 @@ import { state, action, refreshStatus, ageLabel } from "./api";
 const route = useRoute();
 const menu = ref(false);
 const links = [
+  { to: "/providers", label: "Fournisseurs IA", icon: Bot },
   { to: "/", label: "Vue d’ensemble", icon: LayoutDashboard },
   { to: "/chat", label: "Conversation", icon: MessagesSquare },
   { to: "/memories", label: "Mémoire", icon: Brain },
