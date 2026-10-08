@@ -442,3 +442,21 @@ test("moderation adulte : desactivation persistante et reactivation", async ({ p
   await page.getByRole("button", { name: "Appliquer la modération" }).click();
   await expect(page.getByRole("status")).toContainText("Réglage de modération enregistré");
 });
+
+test("test fournisseur : résultat sans modération et erreur quota explicite", async ({ page, request }) => {
+  await request.put('/api/providers/test-result', { headers, data: { label: 'Diagnostic Groq', kind: 'groq', chat_model: 'chat', guard_model: 'guard', api_key: 'fake-test-key' } });
+  await page.route('**/api/providers/test-result/test', async route => {
+    await route.fulfill({ json: { ok: true, moderation_tested: false, detail: 'Le modèle de dialogue répond. Modération désactivée : aucun appel au modèle de modération.' } });
+  });
+  await openPage(page, '/providers');
+  const card = page.locator('article').filter({ hasText: 'Diagnostic Groq' });
+  await card.getByRole('button', { name: 'Tester les modèles' }).click();
+  await expect(page.getByRole('status')).toContainText('Modération désactivée');
+  await page.unroute('**/api/providers/test-result/test');
+  await page.route('**/api/providers/test-result/test', async route => {
+    await route.fulfill({ status: 502, json: { detail: 'Test du modèle de dialogue échoué : quota ou limite de fréquence atteint chez le fournisseur (HTTP 429).' } });
+  });
+  await card.getByRole('button', { name: 'Tester les modèles' }).click();
+  await expect(page.getByRole('alert')).toContainText('HTTP 429');
+  await request.delete('/api/providers/test-result', { headers });
+});

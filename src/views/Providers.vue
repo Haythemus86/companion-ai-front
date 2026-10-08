@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { api, action, refreshStatus } from "../api";
+import { api, action, refreshStatus, state } from "../api";
 type Profile = { label: string; kind: string; chat_model: string; guard_model: string; base_url: string; has_key: boolean };
 type Settings = { profiles: Record<string, Profile>; online: string | null; local: string | null };
 const data = ref<Settings>({ profiles: {}, online: null, local: null });
@@ -47,7 +47,12 @@ async function remove(id: string) {
   await perform(async () => { await api(`/providers/${encodeURIComponent(id)}`, "DELETE"); await load(); }, "Configuration et clé supprimées.");
 }
 async function test(id: string) {
-  await perform(async () => { await api(`/providers/${encodeURIComponent(id)}/test`, "POST"); }, "Les modèles répondent. Aucun souvenir transmis ; qualité de modération à évaluer séparément.");
+  busy.value = true;
+  try {
+    let detail = "";
+    const ok = await action(async () => { const result = await api<{detail: string}>(`/providers/${encodeURIComponent(id)}/test`, "POST"); detail = result.detail; });
+    if (ok) state.notice = detail;
+  } finally { busy.value = false; }
 }
 </script>
 <template>
@@ -96,7 +101,7 @@ async function test(id: string) {
       <button class="button" :disabled="busy" @click="test(String(id))">Tester les modèles</button>
       <button class="button" :disabled="busy || id === data.online || id === data.local" @click="remove(String(id))">Supprimer</button>
     </article>
-    <p>Le test envoie seulement « Réponds uniquement OK » aux modèles configurés. Un appel en ligne peut être facturé.</p>
+    <p>Le test envoie seulement « Réponds uniquement OK » au dialogue, et au modèle de modération seulement si la modération est active. Un appel en ligne peut être facturé.</p>
   </section>
 </template>
 <style scoped>
