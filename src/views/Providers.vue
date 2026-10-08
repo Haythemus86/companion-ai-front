@@ -5,11 +5,12 @@ type Profile = { label: string; kind: string; chat_model: string; guard_model: s
 type Settings = { profiles: Record<string, Profile>; online: string | null; local: string | null };
 const data = ref<Settings>({ profiles: {}, online: null, local: null });
 const busy = ref(false);
+const moderation = ref({ enabled: true, editable: false });
 const editing = ref(false);
 const empty = () => ({ id: "", label: "", kind: "groq", chat_model: "openai/gpt-oss-20b", guard_model: "openai/gpt-oss-safeguard-20b", base_url: "", api_key: "" });
 const form = reactive(empty());
 const local = (kind: string) => ["llama_cpp", "ollama"].includes(kind);
-async function load() { data.value = await api<Settings>("/providers"); }
+async function load() { data.value = await api<Settings>("/providers"); moderation.value = await api("/moderation"); }
 onMounted(() => action(load));
 function edit(id: string, item: Profile) { Object.assign(form, item, { id, api_key: "" }); editing.value = true; }
 function reset() { Object.assign(form, empty()); editing.value = false; }
@@ -31,6 +32,11 @@ async function save() {
     reset(); await load();
   }, "Configuration enregistrée. Les échanges suivants utiliseront les nouveaux réglages si elle est sélectionnée.");
 }
+async function saveModeration() {
+  await perform(async () => {
+    moderation.value = await api("/moderation", "PUT", { enabled: moderation.value.enabled });
+  }, "Réglage de modération enregistré. Il s’applique au prochain tour et aux prochaines initiatives.");
+}
 async function select() {
   await perform(async () => {
     data.value = await api<Settings>("/providers/selection", "PUT", { online: data.value.online || null, local: data.value.local || null });
@@ -47,6 +53,16 @@ async function test(id: string) {
 <template>
   <div class="page-heading"><div><h1>Fournisseurs IA</h1><p>Choisissez vos moteurs en ligne et locaux. Les souvenirs restent gérés par Companion.</p></div></div>
   <div class="notice warning">Ces réglages concernent le dialogue et sa modération. La transcription Groq et la voix actuelle restent configurées séparément ; la chaîne vocale hors connexion reste à installer.</div>
+  <section class="panel provider-panel">
+    <h2>Modération IA</h2>
+    <p>Désactiver les deux appels au modèle de modération pour les conversations et les initiatives du profil adulte. Cela évite le quota du modèle safeguard ; le modèle de dialogue conserve ses propres limites.</p>
+    <form @submit.prevent="saveModeration">
+      <label><input type="checkbox" v-model="moderation.enabled" :disabled="busy || !moderation.editable" /> Activer la modération IA</label>
+      <p v-if="!moderation.editable">Toujours active pour les profils enfant et ado.</p>
+      <p>Les règles locales et les autorisations de partage des souvenirs confidentiels restent appliquées.</p>
+      <button class="button primary" :disabled="busy || !moderation.editable">Appliquer la modération</button>
+    </form>
+  </section>
   <section class="panel provider-panel">
     <h2>Configurations actives</h2>
     <p>Le mode du chat reste local, en ligne ou automatique. En automatique, un moteur local est nécessaire.</p>

@@ -428,3 +428,17 @@ test("fournisseurs : ajout et remplacement de clé sans exposition", async ({ pa
   await page.getByRole("button", { name: "Supprimer", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Mon Groq" })).toHaveCount(0);
 });
+
+
+test("moderation adulte : desactivation persistante et reactivation", async ({ page, request }) => {
+  await openPage(page, "/providers");
+  await page.getByLabel("Activer la modération IA").uncheck();
+  await page.getByRole("button", { name: "Appliquer la modération" }).click();
+  await expect(page.getByRole("status")).toContainText("Réglage de modération enregistré");
+  await page.reload();
+  await expect(page.getByLabel("Activer la modération IA")).not.toBeChecked();
+  expect((await (await request.get("/api/moderation", { headers })).json()).enabled).toBe(false);
+  await page.getByLabel("Activer la modération IA").check();
+  await page.getByRole("button", { name: "Appliquer la modération" }).click();
+  await expect(page.getByRole("status")).toContainText("Réglage de modération enregistré");
+});
