@@ -8,6 +8,7 @@ export interface Preferences {
   interests: string;
   share_local: boolean;
   share_online: boolean;
+  child_answers: Record<string, string>;
 }
 export interface Owner {
   user_id: string;
@@ -97,6 +98,7 @@ export const defaults = (): Preferences => ({
   interests: "",
   share_local: false,
   share_online: false,
+  child_answers: {},
 });
 export const state = reactive({
   status: null as Status | null,
@@ -120,7 +122,9 @@ export async function api<T>(
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(path === "/chat" || path.endsWith("/test") ? 240000 : 15000),
+      signal: AbortSignal.timeout(
+        path === "/chat" || path.endsWith("/test") ? 240000 : 15000,
+      ),
     });
   } catch {
     throw new Error(

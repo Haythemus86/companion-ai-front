@@ -23,6 +23,7 @@ import {
   type Person,
   type Temporary,
 } from "../api";
+import ChildQuestions from "../components/ChildQuestions.vue";
 import Eyes from "../components/Eyes.vue";
 
 const total = ref<number | null>(null);
@@ -34,6 +35,10 @@ const busy = ref(false);
 const name = ref("Companion");
 const nickname = ref("");
 const age = ref("adulte");
+const childAnswers = ref<Record<string, string>>({});
+const shareLocal = ref(false);
+const shareOnline = ref(false);
+const supervised = ref(false);
 const companion = computed(
   () => state.status?.owner?.preferences?.companion_name || "Companion",
 );
@@ -62,6 +67,9 @@ async function setup() {
         ...defaults(),
         companion_name: name.value,
         nickname: nickname.value,
+        child_answers: age.value === "enfant" ? childAnswers.value : {},
+        share_local: shareLocal.value,
+        share_online: shareOnline.value,
       },
     });
     await refreshStatus();
@@ -119,6 +127,25 @@ onMounted(load);
         Le profil d’âge fixe les protections du dialogue. La configuration d’un
         mineur est réservée à un adulte.
       </p>
+      <template v-if="age === 'enfant'">
+        <ChildQuestions v-model="childAnswers" />
+        <label
+          ><input v-model="supervised" type="checkbox" required /> Je suis le
+          parent ou responsable adulte et je valide ces réponses et leur
+          partage.</label
+        >
+      </template>
+      <p>
+        Autoriser l’utilisation des préférences et de toutes les réponses
+        (identité, proches, goûts) :
+      </p>
+      <label
+        ><input v-model="shareLocal" type="checkbox" /> Par l’IA locale</label
+      >
+      <label
+        ><input v-model="shareOnline" type="checkbox" /> Par l’IA en ligne
+        sélectionnée, y compris sa modération</label
+      >
       <button class="button primary" :disabled="busy">
         <Bot :size="18" />{{ busy ? "Configuration…" : "Créer le compagnon" }}
       </button>

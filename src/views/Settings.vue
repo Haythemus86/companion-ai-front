@@ -10,6 +10,7 @@ import {
   ageLabel,
   type Profile,
 } from "../api";
+import ChildQuestions from "../components/ChildQuestions.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 const tab = ref("personality");
 const preferences = ref({ ...defaults(), ...state.status?.owner?.preferences });
@@ -106,16 +107,22 @@ async function remove() {
           /></label>
         </div>
       </section>
+      <ChildQuestions
+        v-if="state.status?.owner?.age_profile === 'enfant'"
+        v-model="preferences.child_answers" />
       <section class="settings-section">
         <div>
-          <h2>Partage des préférences</h2>
-          <p class="muted">Surnom, nom du compagnon et centres d’intérêt.</p>
+          <h2>Partage des préférences et du questionnaire</h2>
+          <p class="muted">
+            Surnom, nom du compagnon, centres d’intérêt et toutes les réponses
+            enfant (identité, proches, goûts).
+          </p>
         </div>
         <div class="form-stack">
           <label class="toggle-row"
             ><div>
               <strong>Modèles locaux</strong
-              ><small>Ollama sur cet appareil</small>
+              ><small>IA locale sur cet appareil</small>
             </div>
             <input
               v-model="preferences.share_local"
@@ -124,7 +131,10 @@ async function remove() {
           ><label class="toggle-row"
             ><div>
               <strong>Modèles en ligne</strong
-              ><small>Envoi à Groq lors d’une conversation en ligne</small>
+              ><small
+                >Envoi au fournisseur sélectionné lors d’une conversation en
+                ligne</small
+              >
             </div>
             <input
               v-model="preferences.share_online"

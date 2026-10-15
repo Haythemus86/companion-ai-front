@@ -473,3 +473,27 @@ test("interrupteur moderation : echec sauvegarde conserve etat reel", async ({ p
   await expect(toggle).toHaveAttribute('aria-checked', 'true');
   await expect(toggle).toContainText('Activée');
 });
+
+test("questionnaire enfant facultatif et partage explicite", async ({ page }) => {
+  await page.route("**/api/status", route => route.fulfill({ json: {
+    configured: false, owner: null, providers: { local: false, online: false }, hardware: "test"
+  }}));
+  let submitted: any = null;
+  await page.route("**/api/setup", route => {
+    submitted = route.request().postDataJSON();
+    return route.fulfill({ status: 409, json: { detail: "Test sans création de propriétaire." } });
+  });
+  await openPage(page);
+  await page.getByLabel("Profil d’âge").selectOption("enfant");
+  await expect(page.getByText("Faisons connaissance", { exact: true })).toBeVisible();
+  await page.getByLabel("Quel est ton prénom ?", { exact: true }).fill("Lina");
+  await page.getByLabel("Quels dessins animés aimes-tu ?", { exact: true }).fill("Totoro");
+  await page.getByLabel("Je suis le parent", { exact: false }).check();
+  await page.getByLabel("Par l’IA locale", { exact: true }).check();
+  await page.getByRole("button", { name: "Créer le compagnon" }).click();
+  await expect(page.getByText("Test sans création de propriétaire.")).toBeVisible();
+  expect(submitted.preferences.child_answers).toEqual({ first_name: "Lina", cartoons: "Totoro" });
+  expect(submitted.preferences.share_local).toBe(true);
+  expect(submitted.preferences.share_online).toBe(false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
