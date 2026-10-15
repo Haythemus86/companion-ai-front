@@ -432,15 +432,13 @@ test("fournisseurs : ajout et remplacement de clé sans exposition", async ({ pa
 
 test("moderation adulte : desactivation persistante et reactivation", async ({ page, request }) => {
   await openPage(page, "/providers");
-  await page.getByLabel("Activer la modération IA").uncheck();
-  await page.getByRole("button", { name: "Appliquer la modération" }).click();
-  await expect(page.getByRole("status")).toContainText("Réglage de modération enregistré");
+  await page.getByRole("switch", { name: "Modération IA" }).click();
+  await expect(page.getByRole("status")).toContainText("État enregistré");
   await page.reload();
-  await expect(page.getByLabel("Activer la modération IA")).not.toBeChecked();
+  await expect(page.getByRole("switch", { name: "Modération IA" })).toHaveAttribute("aria-checked", "false");
   expect((await (await request.get("/api/moderation", { headers })).json()).enabled).toBe(false);
-  await page.getByLabel("Activer la modération IA").check();
-  await page.getByRole("button", { name: "Appliquer la modération" }).click();
-  await expect(page.getByRole("status")).toContainText("Réglage de modération enregistré");
+  await page.getByRole("switch", { name: "Modération IA" }).click();
+  await expect(page.getByRole("status")).toContainText("État enregistré");
 });
 
 test("test fournisseur : résultat sans modération et erreur quota explicite", async ({ page, request }) => {
@@ -459,4 +457,19 @@ test("test fournisseur : résultat sans modération et erreur quota explicite", 
   await card.getByRole('button', { name: 'Tester les modèles' }).click();
   await expect(page.getByRole('alert')).toContainText('HTTP 429');
   await request.delete('/api/providers/test-result', { headers });
+});
+
+
+test("interrupteur moderation : echec sauvegarde conserve etat reel", async ({ page, request }) => {
+  await request.put('/api/moderation', { headers, data: { enabled: true } });
+  await openPage(page, '/providers');
+  await page.route('**/api/moderation', async route => {
+    if (route.request().method() === 'PUT') await route.fulfill({ status: 503, json: { detail: 'Stockage indisponible' } });
+    else await route.continue();
+  });
+  const toggle = page.getByRole('switch', { name: 'Modération IA' });
+  await toggle.click();
+  await expect(page.getByRole('alert')).toContainText('Stockage indisponible');
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  await expect(toggle).toContainText('Activée');
 });

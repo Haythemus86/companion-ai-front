@@ -6,11 +6,12 @@ type Settings = { profiles: Record<string, Profile>; online: string | null; loca
 const data = ref<Settings>({ profiles: {}, online: null, local: null });
 const busy = ref(false);
 const moderation = ref({ enabled: true, editable: false });
+const moderationKnown = ref(false);
 const editing = ref(false);
 const empty = () => ({ id: "", label: "", kind: "groq", chat_model: "openai/gpt-oss-20b", guard_model: "openai/gpt-oss-safeguard-20b", base_url: "", api_key: "" });
 const form = reactive(empty());
 const local = (kind: string) => ["llama_cpp", "ollama"].includes(kind);
-async function load() { data.value = await api<Settings>("/providers"); moderation.value = await api("/moderation"); }
+async function load() { data.value = await api<Settings>("/providers"); moderation.value = await api("/moderation"); moderationKnown.value = true; }
 onMounted(() => action(load));
 function edit(id: string, item: Profile) { Object.assign(form, item, { id, api_key: "" }); editing.value = true; }
 function reset() { Object.assign(form, empty()); editing.value = false; }
@@ -33,9 +34,18 @@ async function save() {
   }, "Configuration enregistrée. Les échanges suivants utiliseront les nouveaux réglages si elle est sélectionnée.");
 }
 async function saveModeration() {
-  await perform(async () => {
-    moderation.value = await api("/moderation", "PUT", { enabled: moderation.value.enabled });
-  }, "Réglage de modération enregistré. Il s’applique au prochain tour et aux prochaines initiatives.");
+  if (busy.value || !moderationKnown.value || !moderation.value.editable) return;
+  busy.value = true;
+  try {
+    const ok = await action(async () => {
+      moderation.value = await api("/moderation", "PUT", { enabled: !moderation.value.enabled });
+    }, "État enregistré. Appliqué au prochain tour de conversation.");
+    if (!ok) {
+      // Après une réponse perdue, relire le serveur avant d'afficher un état certain.
+      try { moderation.value = await api("/moderation"); }
+      catch { moderationKnown.value = false; }
+    }
+  } finally { busy.value = false; }
 }
 async function select() {
   await perform(async () => {
@@ -61,12 +71,16 @@ async function test(id: string) {
   <section class="panel provider-panel">
     <h2>Modération IA</h2>
     <p>Désactiver les deux appels au modèle de modération pour les conversations et les initiatives du profil adulte. Cela évite le quota du modèle safeguard ; le modèle de dialogue conserve ses propres limites.</p>
-    <form @submit.prevent="saveModeration">
-      <label><input type="checkbox" v-model="moderation.enabled" :disabled="busy || !moderation.editable" /> Activer la modération IA</label>
-      <p v-if="!moderation.editable">Toujours active pour les profils enfant et ado.</p>
-      <p>Les règles locales et les autorisations de partage des souvenirs confidentiels restent appliquées.</p>
-      <button class="button primary" :disabled="busy || !moderation.editable">Appliquer la modération</button>
-    </form>
+    <button type="button" role="switch" aria-label="Modération IA" :aria-checked="moderation.enabled"
+      :disabled="busy || !moderation.editable || !moderationKnown" :aria-busy="busy"
+      class="moderation-switch" :class="{ enabled: moderation.enabled && moderationKnown }" @click="saveModeration">
+      <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+      <strong>{{ !moderationKnown ? 'État indisponible' : moderation.enabled ? 'Activée' : 'Désactivée' }}</strong>
+    </button>
+    <p>{{ busy ? 'Enregistrement en cours…' : 'Un clic change le réglage et l’enregistre automatiquement.' }}</p>
+    <p v-if="moderationKnown && !moderation.editable">Toujours active pour les profils enfant et ado.</p>
+    <p>Les règles locales et les autorisations de partage des souvenirs confidentiels restent appliquées.</p>
+
   </section>
   <section class="panel provider-panel">
     <h2>Configurations actives</h2>
@@ -111,4 +125,12 @@ async function test(id: string) {
 .provider-form input, .provider-form select { padding: .7rem; width: 100%; min-width: 0; }
 .provider-item { padding: 1rem 0; border-bottom: 1px solid #ddd; overflow-wrap: anywhere; }
 .provider-item button { margin: .3rem; }
+.moderation-switch { display: inline-flex; align-items: center; gap: .75rem; padding: .75rem; border: 1px solid #64748b; border-radius: .7rem; background: #f1f5f9; color: #334155; cursor: pointer; }
+.moderation-switch.enabled { border-color: #15803d; background: #f0fdf4; color: #166534; }
+.switch-track { display: inline-flex; align-items: center; width: 48px; height: 28px; padding: 3px; background: #64748b; border-radius: 20px; }
+.switch-thumb { width: 22px; height: 22px; background: white; border-radius: 50%; transition: transform .15s; }
+.enabled .switch-track { background: #15803d; }
+.enabled .switch-thumb { transform: translateX(20px); }
+.moderation-switch:disabled { cursor: default; opacity: .7; }
+.moderation-switch:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 </style>
